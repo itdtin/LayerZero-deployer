@@ -3,3 +3,4 @@ build/
 newContracts/
 node_modules/
 wallets.txt
+built.json

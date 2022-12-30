@@ -1,0 +1,17 @@
+{
+  "ethereum":         101,
+  "bsc":              102,
+  "avalanche":        106,
+  "polygon":          109,
+  "arbitrum":         110,
+  "optimism":         111,
+  "fantom":           112,
+
+  "ethTestnet":       10121,
+  "bscTestnet":       10102,
+  "avalancheTestnet": 10106,
+  "polygonTestnet":   10109,
+  "arbitrumTestnet":  10143,
+  "optimismTestnet":  10132,
+  "fantomTestnet":    10112
+}

@@ -1,0 +1,5 @@
+.idea/
+build/
+newContracts/
+node_modules/
+wallets.txt

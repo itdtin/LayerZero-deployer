@@ -1,8 +1,20 @@
 {
+  "name": "devson-bots",
+  "version": "1.0.0",
+  "description": "Bots from Devson for automate your actions",
+  "bin": "server.js",
+  "pkg": {
+    "assets": [ "node_modules/**/*", "src/**/*" ],
+    "targets": [ "node16-macos-x64", "node16-win-x64"]
+  },
+  "type": "module",
   "dependencies": {
     "@openzeppelin/contracts": "^4.8.0",
     "ethers": "^5.7.2",
+    "express": "^4.18.2",
     "fs-extra": "^11.1.0",
+    "get-port": "^6.1.2",
+    "open": "^8.4.0",
     "solc": "^0.8.17"
   }
 }

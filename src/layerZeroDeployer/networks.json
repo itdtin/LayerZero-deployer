@@ -1,0 +1,43 @@
+{
+  "ethereum": {
+    "url": "",
+    "chainId": 0
+  },
+  "bsc": {
+    "url": "",
+    "chainId": 0
+  },
+  "avalanche": {
+    "url": "",
+    "chainId": 0
+  },
+  "polygon": {
+    "url": "",
+    "chainId": 0
+  },
+  "arbitrum": {
+    "url": "",
+    "chainId": 0
+  },
+  "optimism": {
+    "url": "",
+    "chainId": 0
+  },
+  "fantom": {
+    "url": "",
+    "chainId": 0
+  },
+  "avalancheTestnet": {
+    "url": "https://api.avax-test.network/ext/bc/C/rpc",
+    "chainId": "43113"
+  },
+  "polygonTestnet": {
+    "url": "https://rpc.ankr.com/polygon_mumbai",
+    "chainId": 80001
+  },
+  "fantomTestnet": {
+    "url": "https://rpc.ankr.com/fantom_testnet",
+    "chainId": "4002"
+  }
+
+}

@@ -4,3 +4,4 @@ newContracts/
 node_modules/
 wallets.txt
 built.json
+.DS_Store

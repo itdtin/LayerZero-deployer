@@ -1,4 +1,5 @@
 import fs from 'fs'
+import {config} from "../config.js";
 
 
 
@@ -10,11 +11,22 @@ export const loadWallets = function(path) {
   }
 
 export const loadNetworks = function(path) {
+    const networks = {}
     if (fs.existsSync(path)) {
       const contents = fs.readFileSync(path, 'utf-8');
-      return JSON.parse(contents);
+      const content = JSON.parse(contents);
+      for(const networkName of Object.keys(content)) {
+          if(content[networkName].url !== "" && content[networkName].chainId !== 0) {
+              networks[networkName] = content[networkName]
+          }
+      }
+        // let networksNames = Object.entries(content).
+        // filter(networkObj => networkObj[1].url !== "")
+        //     .map(networkObj => networkObj[0])
     }
+    return networks
   }
+
 export const sleep = async function (seconds) {
     return new Promise((resolve) => setTimeout(resolve, seconds * 1000))
   }

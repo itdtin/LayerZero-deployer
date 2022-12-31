@@ -231,6 +231,7 @@ export class Deployer {
     createAndBuildNewContracts(walletAddress, contractNames) {
         const sourcesToDeploy = this.createNewContracts(walletAddress, contractNames)
         const compiled = this.compile(sourcesToDeploy)
+
         return this.build(compiled)
     }
 
@@ -272,7 +273,7 @@ export class Deployer {
                     }
                 }
             }
-            await this.saveData(walletAddr, toSave[walletAddr]["oft"], path.resolve(dirname(require.main.filename), config.DATA_FILE), "oft")
+            await this.saveData(walletAddr, toSave[walletAddr]["oft"], config.DATA_FILE, "oft")
         }
         else if (type === "onft"){
             console.log(`Deploying ONFT token on base: ${baseChain} and childChains: ${childChains}`)
@@ -296,13 +297,12 @@ export class Deployer {
                     instances[baseWallet.address]["onft"][network] = oNft
                 }
             }
-            await this.saveData(baseWallet.address, toSave[baseWallet.address]["onft"], path.resolve(dirname(require.main.filename), config.DATA_FILE), "onft")
+            await this.saveData(baseWallet.address, toSave[baseWallet.address]["onft"], config.DATA_FILE, "onft")
         }
         return instances
     }
 
     async mintONft(oNftInstances) {
-        const filePath = path.resolve(dirname(require.main.filename), config.DATA_FILE)
         const minted = {}
         for(const [key, oNft] of Object.entries(oNftInstances)) {
             const walletAddr = await oNft.signer.address
@@ -321,7 +321,7 @@ export class Deployer {
             }
         }
 
-        this.saveMintedId(minted, filePath)
+        this.saveMintedId(minted, config.DATA_FILE)
         return minted
     }
 
@@ -367,8 +367,7 @@ export class Deployer {
     }
 
     async getDeployedContracts(pk, address, type) {
-        const filePath = path.resolve(dirname(require.main.filename), config.DATA_FILE)
-        const deployed = fs.readJsonSync(filePath)
+        const deployed = fs.readJsonSync(config.DATA_FILE)
         let instances = {}
         const addresses = deployed[address][type]
         if(type === "oft") {

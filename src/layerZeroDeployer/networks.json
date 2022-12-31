@@ -29,7 +29,7 @@
   },
   "avalancheTestnet": {
     "url": "https://api.avax-test.network/ext/bc/C/rpc",
-    "chainId": "43113"
+    "chainId": 43113
   },
   "polygonTestnet": {
     "url": "https://rpc.ankr.com/polygon_mumbai",
@@ -37,7 +37,7 @@
   },
   "fantomTestnet": {
     "url": "https://rpc.ankr.com/fantom_testnet",
-    "chainId": "4002"
+    "chainId": 4002
   }
 
 }

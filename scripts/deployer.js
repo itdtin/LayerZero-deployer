@@ -1,24 +1,25 @@
-const path = require('path');
-const {dirname} = require('path');
-const solc = require('solc');
+import path, {dirname} from 'path';
+import solc from 'solc';
 
-const {ethers} = require("ethers");
-const config = require("../config");
-const {getRandomChoise, sample, getFileNameFromPath, sleep} = require("./utils");
-const fs = require('fs-extra');
+import {ethers} from "ethers";
+import {config} from "../config.js";
+import {getRandomChoise, sample, getFileNameFromPath, sleep} from "./utils.js";
+import fs from 'fs-extra';
+
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
 const LZ_ENDPOINTS = require("../constants/layerzeroEndpoints.json");
 const LZ_CHAIN_IDS = require("../constants/chainIds.json");
 const BaseAbi = require("../abis/BasedOFT.json");
 const OftAbi = require("../abis/OFT.json");
 const ONftAbi = require("../abis/UniversalONFT721.json");
-const sourceDir = path.resolve(dirname(require.main.filename), 'contracts');
-const buildFolderPath = path.resolve(dirname(require.main.filename), 'newContracts');
 
-class Deployer {
+
+export class Deployer {
 
     constructor() {
-        fs.removeSync(buildFolderPath);
-        fs.ensureDirSync(buildFolderPath);
+        fs.removeSync(config.BUILD_PATH);
+        fs.ensureDirSync(config.BUILD_PATH);
     }
 
     async getRandomChains() {
@@ -39,17 +40,17 @@ class Deployer {
 
     getSources(namesToModify) {
         let getContractSource = function (contractFileName) {
-            const contractPath = path.resolve(sourceDir, contractFileName);
+            const contractPath = path.resolve(config.SOURCES_PATH, contractFileName);
             return fs.readFileSync(contractPath, 'utf8');
         }
 
         let sourcesToModify = {}
         let additionalSources = {}
 
-        const list = fs.readdirSync(sourceDir);
+        const list = fs.readdirSync(config.SOURCES_PATH);
         list.forEach(function (file) {
             const fileName = file
-            file = path.resolve(sourceDir, file);
+            file = path.resolve(config.SOURCES_PATH, file);
             const stat = fs.statSync(file);
 
             if (file.substr(file.length - 4, file.length) === ".sol" && namesToModify.indexOf(fileName.split(".")[0]) !== -1 ) {
@@ -107,9 +108,9 @@ class Deployer {
         let buildedPaths = [];
         for (let contractFile in compiled.contracts) {
 
-            const walletAddr = contractFile.split(buildFolderPath)[1].split(getFileNameFromPath(contractFile))[0].replace(/\//g, "")
+            const walletAddr = contractFile.split(config.BUILD_PATH)[1].split(getFileNameFromPath(contractFile))[0].replace(/\//g, "")
             for (let key in compiled.contracts[contractFile]) {
-                const builtPath = path.resolve(buildFolderPath, walletAddr, `${key}.json`)
+                const builtPath = path.resolve(config.BUILD_PATH, walletAddr, `${key}.json`)
                 buildedPaths.push(builtPath)
                 fs.outputJsonSync(
                     builtPath,
@@ -183,7 +184,7 @@ class Deployer {
     }
 
     getContractSource(contractFileName) {
-        const contractPath = path.resolve(sourceDir, contractFileName);
+        const contractPath = path.resolve(config.SOURCES_PATH, contractFileName);
         return fs.readFileSync(contractPath, 'utf8');
     }
 
@@ -192,7 +193,7 @@ class Deployer {
         let sourcesToDeploy = {}
         for (const sourcePath of Object.keys(sources.sourcesToModify)) {
             const newSource = this.modifySource(sources.sourcesToModify[sourcePath].content, walletAddress)
-            const filePath = path.resolve(buildFolderPath, walletAddress, getFileNameFromPath(sourcePath))
+            const filePath = path.resolve(config.BUILD_PATH, walletAddress, getFileNameFromPath(sourcePath))
             this.saveSource(newSource, filePath)
             sourcesToDeploy = {
                 ...sourcesToDeploy,
@@ -202,7 +203,7 @@ class Deployer {
             };
         }
         for (const sourcePath of Object.keys(sources.additionalSources)) {
-            const filePath = path.resolve(buildFolderPath, walletAddress, getFileNameFromPath(sourcePath))
+            const filePath = path.resolve(config.BUILD_PATH, walletAddress, getFileNameFromPath(sourcePath))
             this.saveSource(sources.additionalSources[sourcePath].content, filePath)
             sourcesToDeploy = {
                 ...sourcesToDeploy,
@@ -230,6 +231,7 @@ class Deployer {
     createAndBuildNewContracts(walletAddress, contractNames) {
         const sourcesToDeploy = this.createNewContracts(walletAddress, contractNames)
         const compiled = this.compile(sourcesToDeploy)
+
         return this.build(compiled)
     }
 
@@ -271,7 +273,7 @@ class Deployer {
                     }
                 }
             }
-            await this.saveData(walletAddr, toSave[walletAddr]["oft"], path.resolve(dirname(require.main.filename), config.DATA_FILE), "oft")
+            await this.saveData(walletAddr, toSave[walletAddr]["oft"], config.DATA_FILE, "oft")
         }
         else if (type === "onft"){
             console.log(`Deploying ONFT token on base: ${baseChain} and childChains: ${childChains}`)
@@ -295,13 +297,12 @@ class Deployer {
                     instances[baseWallet.address]["onft"][network] = oNft
                 }
             }
-            await this.saveData(baseWallet.address, toSave[baseWallet.address]["onft"], path.resolve(dirname(require.main.filename), config.DATA_FILE), "onft")
+            await this.saveData(baseWallet.address, toSave[baseWallet.address]["onft"], config.DATA_FILE, "onft")
         }
         return instances
     }
 
     async mintONft(oNftInstances) {
-        const filePath = path.resolve(dirname(require.main.filename), config.DATA_FILE)
         const minted = {}
         for(const [key, oNft] of Object.entries(oNftInstances)) {
             const walletAddr = await oNft.signer.address
@@ -320,7 +321,7 @@ class Deployer {
             }
         }
 
-        this.saveMintedId(minted, filePath)
+        this.saveMintedId(minted, config.DATA_FILE)
         return minted
     }
 
@@ -366,8 +367,7 @@ class Deployer {
     }
 
     async getDeployedContracts(pk, address, type) {
-        const filePath = path.resolve(dirname(require.main.filename), config.DATA_FILE)
-        const deployed = fs.readJsonSync(filePath)
+        const deployed = fs.readJsonSync(config.DATA_FILE)
         let instances = {}
         const addresses = deployed[address][type]
         if(type === "oft") {
@@ -543,5 +543,3 @@ class Deployer {
         }
     }
 }
-
-module.exports = {Deployer}

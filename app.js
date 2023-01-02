@@ -1,32 +1,28 @@
-const ethers = require('ethers');
-const config = require("./config");
-const {loadWallets} = require("./scripts/utils");
-const {Deployer} = require("./scripts/deployer");
-const path = require("path");
-const LZ_CHAIN_IDS = require("./constants/chainIds.json");
-
-const {dirname} = require("path");
-const buildFolderPath = path.resolve(dirname(require.main.filename), 'newContracts');
+import ethers from 'ethers';
+import {config} from "./config.js";
+import {loadWallets} from "./scripts/utils.js";
+import {Deployer} from "./scripts/deployer.js";
 
 
 
-const mainConfig = {
-    buildsPaths: "", // will be filled below
-    baseChain: "", // will be filled below
-    childChains: [], // will be filled below
-}
-const contractsToDeploy = config.OFT_TO_DEPLOY.concat(config.ONFT_TO_DEPLOY)
 
-async function main(deployConfig) {
-    const wallets = loadWallets();
+async function main() {
+    const deployConfig = {
+        buildsPaths: "", // will be filled below
+        baseChain: "", // will be filled below
+        childChains: [], // will be filled below
+    }
+    const wallets = loadWallets(config.WALLETS_PATH);
+    console.log("wallets: ", wallets)
     const deployer = new Deployer()
     for (const walletPk of wallets) {
         const {baseChain, childChains} = await deployer.getRandomChains()
-        const baseProvader = config.getProvider(deployConfig.baseChain)
-        const baseWallet = new ethers.Wallet(walletPk, baseProvader);
+        console.log(baseChain)
+        console.log(childChains)
+        const baseProvider = config.getProvider(baseChain)
+        const baseWallet = new ethers.Wallet(walletPk, baseProvider);
         const walletAddr = baseWallet.address
-
-        const buildsPaths = deployer.createAndBuildNewContracts(walletAddr, contractsToDeploy)
+        const buildsPaths = deployer.createAndBuildNewContracts(walletAddr, config.OFT_TO_DEPLOY.concat(config.ONFT_TO_DEPLOY))
         deployConfig.baseChain = baseChain
         deployConfig.childChains = childChains
         deployConfig.buildsPaths = buildsPaths
@@ -52,9 +48,9 @@ async function main(deployConfig) {
         }
 
         // Send ONFT
-        oNfts = oNfts ? oNfts[walletAddr].onft : await deployer.getDeployedContracts(walletPk, walletAddr, "onft")
         if(config.ONFT_SEND_BETWEEN_CHAINS) {
             console.log("Minting ONft...")
+            oNfts = oNfts ? oNfts[walletAddr].onft : await deployer.getDeployedContracts(walletPk, walletAddr, "onft")
             const minted = await deployer.mintONft(oNfts)
             await deployer.sendONfts(oNfts, walletAddr, minted)
         }
@@ -62,12 +58,11 @@ async function main(deployConfig) {
 }
 
 
-if (require.main === module) {
-    main(mainConfig)
-        .then(() => process.exit(0))
-        .catch((error) => {
-            console.error(error)
-            process.exit(1)
-        })
-}
+main()
+    .then(() => process.exit(0))
+    .catch((error) => {
+        console.error(error)
+        process.exit(1)
+    })
+
 

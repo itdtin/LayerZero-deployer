@@ -1,6 +1,8 @@
 .idea/
 build/
-newContracts/
+newSources/
 node_modules/
 wallets.txt
 built.json
+networks.json
+.DS_Store

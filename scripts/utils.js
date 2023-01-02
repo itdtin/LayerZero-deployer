@@ -1,61 +1,49 @@
-const config = require('../config')
-const fs = require('fs')
+import fs from 'fs'
+import {config} from "../config.js";
 
 
 
-module.exports = {
-  chunkArray: function(myArray, chunk_size) {
-    let index = 0
-    const arrayLength = myArray.length
-    const tempArray = []
-
-    for (index = 0; index < arrayLength; index += chunk_size) {
-      myChunk = myArray.slice(index, index + chunk_size)
-      tempArray.push(myChunk)
-    }
-    return tempArray
-  },
-
-  doViaChunks: async function(_array, _doFn, _chunkSize = config.CHUNK_SIZE) {
-    try {
-      let results = []
-      const chunks = this.chunkArray(_array, _chunkSize)
-      for (const chunk of chunks) {
-        const result = await doForChunk(chunk, _doFn)
-        results = results.concat(...Array(result))
-      }
-
-      async function doForChunk(_chunk, _doFn) {
-        const data = _chunk.map(async instance => await _doFn(instance))
-        return Promise.all(data)
-      }
-      results = results.filter(function(el) {
-        return el !== undefined
-      })
-      return results
-    } catch (e) { console.log(e) }
-  },
-  loadWallets: function(walletsPath ='./wallets.txt') {
-    if (fs.existsSync(walletsPath)) {
-      const contents = fs.readFileSync(walletsPath, 'utf-8');
+export const loadWallets = function(path) {
+    console.log(fs.existsSync(path))
+    if (fs.existsSync(path)) {
+      const contents = fs.readFileSync(path, 'utf-8');
+      console.log(contents)
       return contents.split(/\r?\n/);
     }
-  },
-  sleep: async function (seconds) {
-    return new Promise((resolve) => setTimeout(resolve, seconds * 1000))
-  },
+  }
 
-  getRandomFloat: function(min, max, decimals) {
+export const loadNetworks = function(path) {
+    const networks = {}
+    if (fs.existsSync(path)) {
+      const contents = fs.readFileSync(path, 'utf-8');
+      const content = JSON.parse(contents);
+      for(const networkName of Object.keys(content)) {
+          if(content[networkName].url !== "" && content[networkName].chainId !== 0) {
+              networks[networkName] = content[networkName]
+          }
+      }
+        // let networksNames = Object.entries(content).
+        // filter(networkObj => networkObj[1].url !== "")
+        //     .map(networkObj => networkObj[0])
+    }
+    return networks
+  }
+
+export const sleep = async function (seconds) {
+    return new Promise((resolve) => setTimeout(resolve, seconds * 1000))
+  }
+
+export const getRandomFloat = function(min, max, decimals) {
     const str = (Math.random() * (max - min) + parseFloat(min)).toFixed(decimals);
     return parseFloat(str);
-},
+}
 
-  getRandomChoise: function(collection) {
+export const getRandomChoise = function(collection) {
     const str = (Math.random() * (collection.length - 1) + 1);
     return parseInt(str) - 1;
-  },
+  }
 
-  sample: function(array, size = 1) {
+export const sample = function(array, size = 1) {
     const { floor, random } = Math;
     let sampleSet = new Set();
     for (let i = 0; i < size; i++) {
@@ -65,9 +53,8 @@ module.exports = {
       sampleSet.add(index);
     }
     return [...sampleSet].map(i => array[i]);
-  },
+  }
 
-  getFileNameFromPath: function (str) {
+export const getFileNameFromPath = function (str) {
     return str.split('\\').pop().split('/').pop();
-  },
-}
+  }

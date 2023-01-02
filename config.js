@@ -1,11 +1,19 @@
-const {ethers} = require("ethers");
-const net = require("net");
-const path = require("path");
-const {dirname} = require("path");
+import ethers from "ethers";
+import path, {dirname} from "path";
+import {loadNetworks} from "./scripts/utils.js";
+const SOURCES_PATH = path.resolve('sources')
+const BUILD_PATH = path.resolve('../newSources')
+const WALLETS_PATH = path.resolve('wallets.txt')
+const NETWORKS_PATH = path.resolve('networks.json')
+const DATA_FILE = path.resolve('built.json')
 
-module.exports = {
+export const config = {
 
-    DATA_FILE: "built.json",
+    DATA_FILE,
+    WALLETS_PATH,
+    NETWORKS_PATH,
+    SOURCES_PATH,
+    BUILD_PATH,
 
     OFT_TO_DEPLOY: ["OFT", "TestToken"],
     OFT_SUPPLY: ethers.utils.parseEther("1000000000"),
@@ -21,8 +29,7 @@ module.exports = {
     WAIT_TX_SEND: 60,
     WAIT_TX_RECEIPT: 30,
     WAIT_STEP: 1,
-    sourceDir: path.resolve(dirname(require.main.filename), 'contracts'),
-    buildFolderPath: path.resolve(dirname(require.main.filename), 'newContracts'),
+    networks: loadNetworks(NETWORKS_PATH),
 
     getProvider: function (network) {
         const networkObj = this.networks[network]
@@ -32,37 +39,6 @@ module.exports = {
                 name: network
             });
         }
-    },
-    networks: {
-        // ethTestnet: {
-        //     url: `https://thrilling-convincing-fire.ethereum-goerli.quiknode.pro/2dccda67a7706727111291f27b483c645ce05f77`,
-        //     chainId: 5,
-        // },
-        // bscTestnet: {
-        //     url: `https://old-twilight-frog.bsc-testnet.quiknode.pro/5e2ac88418bb925fbc3328cf7fb22c93c38f7eaf`,
-        //     chainId: 97,
-        // },
-        avalancheTestnet: {
-            url: `https://api.avax-test.network/ext/bc/C/rpc`,
-            chainId: 43113,
-        },
-        polygonTestnet: {
-            url: 'https://rpc.ankr.com/polygon_mumbai',
-            chainId: 80001,
-        },
-        // arbitrumTestnet: {
-        //     url: 'https://goerli-rollup.arbitrum.io/rpc',
-        //     chainId: 421613,
-        // },
-        // optimismTestnet: {
-        //     url: `https://goerli.optimism.io/`,
-        //     chainId: 420,
-        // },
-        fantomTestnet: {
-            url: `https://rpc.ankr.com/fantom_testnet`,
-            chainId: 4002,
-        }
     }
-
 }
 

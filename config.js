@@ -2,7 +2,7 @@ import ethers from "ethers";
 import path, {dirname} from "path";
 import {loadNetworks} from "./scripts/utils.js";
 const SOURCES_PATH = path.resolve('sources')
-const BUILD_PATH = path.resolve('newSources')
+const BUILD_PATH = path.resolve('../newSources')
 const WALLETS_PATH = path.resolve('wallets.txt')
 const NETWORKS_PATH = path.resolve('networks.json')
 const DATA_FILE = path.resolve('built.json')
@@ -40,6 +40,5 @@ export const config = {
             });
         }
     }
-
 }
 

@@ -13,6 +13,7 @@ async function main() {
         childChains: [], // will be filled below
     }
     const wallets = loadWallets(config.WALLETS_PATH);
+    console.log("wallets: ", wallets)
     const deployer = new Deployer()
     for (const walletPk of wallets) {
         const {baseChain, childChains} = await deployer.getRandomChains()

@@ -4,8 +4,10 @@ import {config} from "../config.js";
 
 
 export const loadWallets = function(path) {
+    console.log(fs.existsSync(path))
     if (fs.existsSync(path)) {
       const contents = fs.readFileSync(path, 'utf-8');
+      console.log(contents)
       return contents.split(/\r?\n/);
     }
   }

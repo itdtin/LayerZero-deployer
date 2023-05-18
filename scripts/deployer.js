@@ -35,6 +35,7 @@ export class Deployer {
             }
             childChains.push(networksNames[num])
         }
+        console.log("baseChain", baseChain)
         return {baseChain, childChains }
     }
 
@@ -134,11 +135,10 @@ export class Deployer {
         console.log(`\nDeploying ${getFileNameFromPath(buildPath).split(".")[0]} on chain ${wallet.provider.network.name}`);
         try {
             let contract = new ethers.ContractFactory(
-                contractBuildedObject.abi,
-                contractBuildedObject.bytecode,
-                wallet
+            contractBuildedObject.abi,
+            contractBuildedObject.bytecode,
+            wallet
             );
-
             let instance = await contract.deploy(...args);
             console.log(`deployed at ${instance.address}`)
             config[`${process.argv[2]}`] = instance.address
@@ -146,12 +146,10 @@ export class Deployer {
             await instance.deployed()
             console.log("Contract deployed\n")
             await sleep(2)
-            return instance
         } catch (e) {
             console.log(`Can't deploy contract on chain ${wallet.provider.network.name}`)
-
         }
-
+        return instance
     }
 
     modifySource(content, walletAddress) {
@@ -253,11 +251,23 @@ export class Deployer {
             let baseOft;
             for (const buildPath of contractsToDeploy) {
                 if (buildPath.endsWith("TestToken.json")) {
-                    baseOft = await this.deploy(buildPath, baseWallet, [LZ_ENDPOINTS[baseChain], config.OFT_SUPPLY])
-                    toSave[walletAddr]["oft"]["base"] = baseChain
-                    instances[walletAddr]["oft"]["base"] = baseChain
-                    toSave[walletAddr]["oft"][baseChain] = baseOft.address
-                    instances[walletAddr]["oft"][baseChain] = baseOft
+
+                    const args = [LZ_ENDPOINTS[baseChain], config.OFT_SUPPLY]
+                    const overrides = {"gasPrice": gasPrice.mul(2)}
+                    const gasPrice = await baseWallet.provider.getGasPrice()
+                    const gasLimit = config.networks[baseChain]?.deployGasLimit
+                    if(gasLimit) {
+                        overrides.gasLimit = gasLimit
+                    }
+                    args.push(overrides)
+
+                    baseOft = await this.deploy(buildPath, baseWallet, args)
+                    if(baseOft) {
+                        toSave[walletAddr]["oft"]["base"] = baseChain
+                        instances[walletAddr]["oft"]["base"] = baseChain
+                        toSave[walletAddr]["oft"][baseChain] = baseOft.address
+                        instances[walletAddr]["oft"][baseChain] = baseOft
+                    }
                 }
                 else if(buildPath.endsWith("OFT.json")){
                     let oft;
@@ -266,10 +276,19 @@ export class Deployer {
                         const wallet = new ethers.Wallet(pk, provider);
                         const tokenName = childChain + "OFT"
                         const tokenSymbol = "OFT" + childChain.slice(0, 1)
-
-                        oft = await this.deploy(buildPath, wallet, [tokenName, tokenSymbol, LZ_ENDPOINTS[childChain], config.OFT_SUPPLY])
-                        toSave[walletAddr]["oft"][childChain] = oft.address
-                        instances[walletAddr]["oft"][childChain] = oft
+                        const args = [tokenName, tokenSymbol, LZ_ENDPOINTS[childChain], config.OFT_SUPPLY]
+                        const gasPrice = await wallet.provider.getGasPrice()
+                        const overrides = {"gasPrice": gasPrice.mul(2)}
+                        const gasLimit = config.networks[childChain]?.deployGasLimit
+                        if(gasLimit) {
+                            overrides.gasLimit = gasLimit
+                        }
+                        args.push(overrides)
+                        oft = await this.deploy(buildPath, wallet, args)
+                        if(oft) {
+                            toSave[walletAddr]["oft"][childChain] = oft.address
+                            instances[walletAddr]["oft"][childChain] = oft
+                        }
                     }
                 }
             }
@@ -278,9 +297,7 @@ export class Deployer {
         else if (type === "onft"){
             console.log(`Deploying ONFT token on base: ${baseChain} and childChains: ${childChains}`)
             const contractsToDeploy = this.filterBuildPathToDeploy(buildsPaths, config.ONFT_TO_DEPLOY)
-            let chains = childChains
-            chains.push(baseChain)
-
+            let chains = childChains.concat(baseChain)
             for(const buildPath of contractsToDeploy) {
 
                 const {minIds, maxIds} = this.getMinMaxId(chains, config.ONFT_SUPPLY)
@@ -292,9 +309,21 @@ export class Deployer {
                     const wallet = new ethers.Wallet(pk, provider);
                     const tokenName = network + "ONFT"
                     const tokenSymbol = "ONFT" + network.slice(0, 1)
-                    const oNft = await this.deploy(buildPath, wallet, [tokenName, tokenSymbol, LZ_ENDPOINTS[network], minId, maxId])
-                    toSave[baseWallet.address]["onft"][network] = {address: oNft.address, maxId: maxId, minId: minId}
-                    instances[baseWallet.address]["onft"][network] = oNft
+
+                    const args = [tokenName, tokenSymbol, LZ_ENDPOINTS[network], minId, maxId]
+                    const gasPrice = await wallet.provider.getGasPrice()
+                    const overrides = {"gasPrice": gasPrice.mul(2)}
+                    const gasLimit = config.networks[network]?.deployGasLimit
+                    if(gasLimit) {
+                        overrides.gasLimit = gasLimit
+                    }
+                    args.push(overrides)
+
+                    const oNft = await this.deploy(buildPath, wallet, args)
+                    if(oNft) {
+                        toSave[baseWallet.address]["onft"][network] = {address: oNft.address, maxId: maxId, minId: minId}
+                        instances[baseWallet.address]["onft"][network] = oNft
+                    }
                 }
             }
             await this.saveData(baseWallet.address, toSave[baseWallet.address]["onft"], config.DATA_FILE, "onft")
@@ -305,12 +334,13 @@ export class Deployer {
     async mintONft(oNftInstances) {
         const minted = {}
         for(const [key, oNft] of Object.entries(oNftInstances)) {
+            console.log(`Minting ONFT on ${oNft.provider.network.name}`)
             const walletAddr = await oNft.signer.address
-            let counter = Object.keys(oNftInstances).length
+            let counter = Object.keys(oNftInstances).length - 1 // to send for each chain
             while (counter !== 0) {
                 const mintedId = await oNft.nextMintId()
-                const mintTx = await oNft.mint()
-                await this.waitTxReceipt(mintTx, oNft.provider)
+                await this.sendTx(oNft.mint, oNft.provider, [])
+
                 const alreadyMinted = minted[walletAddr] || {}
                 const alreadyMintedForNetwork = alreadyMinted[key] ? alreadyMinted[key] : []
                 alreadyMintedForNetwork.push(mintedId.toString())
@@ -342,16 +372,20 @@ export class Deployer {
     }
 
     getMinMaxId(chains, totalSupply) {
-        let initId = 1
+        let initId;
         let maxId = 0;
         let minIds = []
         let maxIds = []
         for (const _ of chains) {
+            initId = 1
             if(maxIds.length === chains.length) {
                 break
             }
             initId = initId + maxId
             maxId = maxId === 0 ? parseInt(totalSupply / chains.length + 1) : maxId + maxId
+            if(maxId > totalSupply) {
+                maxId = totalSupply
+            }
             minIds.push(initId)
             maxIds.push(maxId)
         }
@@ -396,11 +430,11 @@ export class Deployer {
     }
 
     async setupCommunications(instances, type) {
-        console.log(`Setting up communications for ${type}`)
         if(type === "oft") {
             const base = instances.base
             const baseInstance = instances[base]
             for (const [key, instance] of Object.entries(instances)) {
+                console.log(`Setting up communications for ${type} on ${instance.provider.network.name}`)
                 if(key !== base && key !== "base") {
                     try {
                         const lzChainId = LZ_CHAIN_IDS[key]
@@ -453,8 +487,8 @@ export class Deployer {
                         walletAddr, // LayerZero refund address (if too much fee is sent gets refunded)
                         ethers.constants.AddressZero, // future parameter
                         adapterParams, // adapterParameters empty bytes specifies default settings
-                        { value: nativeFee }
-                    ])
+                        // { value: nativeFee }
+                    ], null, nativeFee)
 
                 } catch (e) {
                     console.log(`Can't send OFT from ${base} to ${name} amount ${amount}\n${e}`)
@@ -465,16 +499,14 @@ export class Deployer {
     }
 
     async sendONfts(onfts, walletAddr, minted) {
-
-        let txs = []
         for(const [srcChainName, srcONft] of Object.entries(onfts)){
             const onChainIds = minted[walletAddr][srcChainName]
             if(onChainIds.length > 0) {
                 for (const [dstChainName, dstONft] of Object.entries(onfts)) {
                     if (dstChainName !== srcChainName) {
                         const adapterParams = ethers.utils.solidityPack(["uint16", "uint256"], [1, 200000])
-                        const tokenIdToSend = onChainIds[Object.keys(onfts).indexOf(dstChainName)]
-                        //ownerOf
+                        const tokenIdToSend = onChainIds[0]
+
                         try {
                             const nativeFee = (await srcONft.estimateSendFee(LZ_CHAIN_IDS[dstChainName], walletAddr, tokenIdToSend, false, adapterParams)).nativeFee
                             await this.sendTx(srcONft.sendFrom, srcONft.provider, [
@@ -485,8 +517,8 @@ export class Deployer {
                                 walletAddr, // LayerZero refund address (if too much fee is sent gets refunded)
                                 ethers.constants.AddressZero, // future parameter
                                 adapterParams, // adapterParameters empty bytes specifies default settings
-                                {value: nativeFee} // pass a msg.value to pay the LayerZero message fee
-                            ])
+                                // {value: nativeFee} // pass a msg.value to pay the LayerZero message fee
+                            ], null, nativeFee)
                             console.log(`Sent ONft with id: ${tokenIdToSend}, from SrcChain: ${srcChainName} to dstChain: ${dstChainName}`)
                         } catch (e) {
                             console.log(`Can't send ONft with id: ${tokenIdToSend}, from SrcChain: ${srcChainName} to dstChain: ${dstChainName}\n${e}`)
@@ -495,16 +527,21 @@ export class Deployer {
                 }
             }
         }
-        Promise.all(txs).then((tx) => {
-            tx.wait();
-        });
-        return txs
     }
 
-    async sendTx(functionToCall, provider, args) {
+    async sendTx(functionToCall, provider, args, gasLimit=null,value=null) {
         let result;
         let waited = 0;
         while (waited < config.WAIT_TX_SEND) {
+            const gasPrice = await provider.getGasPrice()
+            const overrides = {"gasPrice": gasPrice.mul(2)}
+            if(gasLimit) {
+                overrides.gasLimit = gasLimit
+            }
+            if(value) {
+                overrides.value = value
+            }
+            args.push(overrides)
             try {
                 result = await functionToCall(...args);
                 if (result === null) {

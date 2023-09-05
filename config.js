@@ -20,9 +20,9 @@ export const config = {
     OFT_TO_DEPLOY: ["OFT", "TestToken"],
     OFT_SUPPLY: ethers.utils.parseEther("1000000000"),
     OFT_TO_SEND: ethers.utils.parseEther("1000000"),
-    OFT_DEPLOY: true,
-    SETUP_OFT_COMMUNICATIONS: true,
-    OFT_SEND_TO_CHILD_CHAINS: true,
+    OFT_DEPLOY: false,
+    SETUP_OFT_COMMUNICATIONS: false,
+    OFT_SEND_TO_CHILD_CHAINS: false,
 
 
     ONFT_TO_DEPLOY: ["UniversalONFT721"],

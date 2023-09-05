@@ -166,13 +166,13 @@ export class Deployer {
       await instance.deployed();
       console.log("Contract deployed\n");
       await sleep(2);
+      return instance;
     } catch (e) {
       console.log(e.message);
       console.log(
         `Can't deploy contract on chain ${wallet.provider.network.name}`
       );
     }
-    return instance;
   }
 
   modifySource(content, walletAddress) {
